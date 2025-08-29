@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaegaePro App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        #wifiList {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .wifi-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 3px;
+            border: 1px solid #eee;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BaegaePro WiFi & Vibration Controller</h1>
+        
+        <div class="section">
+            <h2>WiFi 관리</h2>
+            <button onclick="scanWiFi()">주변 WiFi 스캔</button>
+            <div id="wifiList"></div>
+            
+            <div style="margin-top: 15px;">
+                <input type="text" id="ssid" placeholder="SSID 입력">
+                <input type="password" id="password" placeholder="비밀번호 입력">
+                <br>
+                <button onclick="connectWiFi()">일반 연결</button>
+                <button onclick="connectSecondaryWiFi()">보조 연결</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>진동 제어</h2>
+            <button onclick="vibrateOnce(500, false)">기본 진동 (0.5초)</button>
+            <button onclick="vibrateOnce(500, true)">Fade 진동 (0.5초)</button>
+            <button onclick="vibratePattern()">패턴 진동</button>
+            <button onclick="vibratePatternFade()">패턴 Fade 진동</button>
+            <button onclick="stopVibration()">진동 중지</button>
+        </div>
+
+        <div class="section">
+            <h2>결과</h2>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        function showResult(message) {
+            document.getElementById('result').innerHTML = 
+                '<div class="result">' + new Date().toLocaleTimeString() + ': ' + message + '</div>' + 
+                document.getElementById('result').innerHTML;
+        }
+
+        function scanWiFi() {
+            try {
+                const result = Android.scanWiFi();
+                const networks = JSON.parse(result);
+                
+                if (networks.error) {
+                    showResult('WiFi 스캔 오류: ' + networks.error);
+                    return;
+                }
+                
+                let html = '<h3>발견된 WiFi 네트워크:</h3>';
+                
+                if (Array.isArray(networks)) {
+                    networks.forEach(network => {
+                        html += `
+                            <div class="wifi-item">
+                                <strong>${network.ssid}</strong><br>
+                                Signal: ${network.level}dBm | 
+                                Frequency: ${network.frequency}MHz<br>
+                                <small>${network.capabilities}</small>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>네트워크를 찾을 수 없습니다.</p>';
+                }
+                
+                document.getElementById('wifiList').innerHTML = html;
+                showResult('WiFi 스캔 완료: ' + (Array.isArray(networks) ? networks.length : 0) + '개 네트워크 발견');
+            } catch (e) {
+                showResult('WiFi 스캔 실패: ' + e.message);
+            }
+        }
+
+        function connectWiFi() {
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+            
+            if (!ssid) {
+                showResult('SSID를 입력하세요');
+                return;
+            }
+            
+            try {
+                const result = Android.connectToWiFi(ssid, password);
+                const response = JSON.parse(result);
+                showResult(response.message || (response.success ? '연결 성공' : '연결 실패'));
+            } catch (e) {
+                showResult('WiFi 연결 실패: ' + e.message);
+            }
+        }
+
+        function connectSecondaryWiFi() {
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+            
+            if (!ssid) {
+                showResult('SSID를 입력하세요');
+                return;
+            }
+            
+            try {
+                const result = Android.connectToWiFiAsSecondary(ssid, password);
+                const response = JSON.parse(result);
+                showResult(response.message || (response.success ? '보조 연결 성공' : '보조 연결 실패'));
+            } catch (e) {
+                showResult('보조 WiFi 연결 실패: ' + e.message);
+            }
+        }
+
+        function vibrateOnce(duration, fade) {
+            try {
+                const result = Android.vibrateOnce(duration, fade);
+                const response = JSON.parse(result);
+                showResult('진동 실행: ' + duration + 'ms' + (fade ? ' (Fade 효과)' : ''));
+            } catch (e) {
+                showResult('진동 실행 실패: ' + e.message);
+            }
+        }
+
+        function vibratePattern() {
+            try {
+                const pattern = "0,200,100,200,100,200";
+                const result = Android.vibrate(pattern, false);
+                const response = JSON.parse(result);
+                showResult('패턴 진동 실행: ' + pattern);
+            } catch (e) {
+                showResult('패턴 진동 실패: ' + e.message);
+            }
+        }
+
+        function vibratePatternFade() {
+            try {
+                const pattern = "0,300,100,300,100,300";
+                const result = Android.vibrate(pattern, true);
+                const response = JSON.parse(result);
+                showResult('Fade 패턴 진동 실행: ' + pattern);
+            } catch (e) {
+                showResult('Fade 패턴 진동 실패: ' + e.message);
+            }
+        }
+
+        function stopVibration() {
+            try {
+                const result = Android.stopVibration();
+                const response = JSON.parse(result);
+                showResult('진동 중지됨');
+            } catch (e) {
+                showResult('진동 중지 실패: ' + e.message);
+            }
+        }
+
+        window.addEventListener('load', function() {
+            showResult('앱이 로드되었습니다');
+        });
+    </script>
+</body>
+</html>
