@@ -88,7 +88,7 @@ class WebViewActivity : AppCompatActivity() {
         
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
         
-        webView.loadUrl("https://www.google.com")
+        webView.loadUrl("https://baegaepro-service.ncloud.sbs/ ")
         
         Toast.makeText(this, "모든 권한이 승인되었습니다!", Toast.LENGTH_SHORT).show()
     }
