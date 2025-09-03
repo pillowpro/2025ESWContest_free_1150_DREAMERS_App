@@ -18,7 +18,7 @@ import androidx.core.content.ContextCompat
 
 class WebViewActivity : AppCompatActivity() {
     
-    private lateinit var webView: WebView
+    lateinit var webView: WebView
     private val PERMISSION_REQUEST_CODE = 123
     
     private val requiredPermissions = arrayOf(
