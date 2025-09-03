@@ -7,6 +7,9 @@ import android.os.Bundle
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebChromeClient
+import android.webkit.ConsoleMessage
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -75,6 +78,22 @@ class WebViewActivity : AppCompatActivity() {
     
     private fun initializeWebView() {
         webView.webViewClient = WebViewClient()
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                when (consoleMessage.messageLevel()) {
+                    ConsoleMessage.MessageLevel.ERROR -> {
+                        Log.e("WebView", "JS ERROR: ${consoleMessage.message()} -- From line ${consoleMessage.lineNumber()} of ${consoleMessage.sourceId()}")
+                    }
+                    ConsoleMessage.MessageLevel.WARNING -> {
+                        Log.w("WebView", "JS WARNING: ${consoleMessage.message()} -- From line ${consoleMessage.lineNumber()} of ${consoleMessage.sourceId()}")
+                    }
+                    else -> {
+                        Log.d("WebView", "JS: ${consoleMessage.message()} -- From line ${consoleMessage.lineNumber()} of ${consoleMessage.sourceId()}")
+                    }
+                }
+                return true
+            }
+        }
         
         val webSettings: WebSettings = webView.settings
         webSettings.javaScriptEnabled = true
